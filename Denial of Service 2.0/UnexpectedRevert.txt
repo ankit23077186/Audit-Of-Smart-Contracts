@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title UnexpectedRevert
+ * @dev This contract allows users to deposit and withdraw ether. Contains a potential Denial of Service (DoS) vulnerability in the withdraw function.
+ */
+contract UnexpectedRevert {
+    /**
+     * @dev Mapping from addresses to their ether balances.
+     */
+    mapping(address => uint) public balances; ///< Mapping of addresses to their ether balances.
+
+    /**
+     * @notice Deposits ether into the contract and updates the caller's balance.
+     * @dev The deposited amount is added to the caller's balance.
+     */
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    /**
+     * @notice Withdraws a specified amount of ether from the caller's balance.
+     * @param amount The amount of ether to withdraw.
+     * @dev Reduces the caller's balance by the specified amount and attempts to transfer the ether.
+     * If the external call fails (e.g., due to a revert in the receiving contract), the entire transaction is reverted,
+     * preventing the withdrawal from being processed.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the call to transfer ether fails, 
+     * it will revert the transaction, blocking the withdrawal process for the caller.
+     */
+    function withdraw(uint amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance.");
+        balances[msg.sender] -= amount;
+
+        // If the external call fails, it reverts the entire transaction.
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed"); ///< DoS Vulnerability: Reverting call can block withdrawals.
+    }
+}

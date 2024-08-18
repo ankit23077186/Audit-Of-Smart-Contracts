@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title Leadership Transition
+ * @dev This contract manages a leadership transition mechanism where the president can be changed
+ *      by paying a certain price. The price for becoming president doubles after each transition.
+ * @notice Contains a Denial of Service (DoS) vulnerability related to external contract interactions.
+ */
+contract LeadershipTransition {
+
+    /// @notice The address of the current president.
+    address public president;
+
+    /// @notice The price required to become president.
+    uint public price;
+
+    /**
+     * @notice Allows a new president to be elected by paying the required price.
+     * @dev The function transfers the current price to the previous president,
+     *      updates the president address to the new president, and doubles the price for the next transition.
+     *      If the current president is a contract with a fallback function that reverts, 
+     *      the transfer call will fail, causing the entire transaction to revert.
+     * @param msg.value The amount of Ether sent with the transaction.
+     * @dev <yes> <report> DENIAL_OF_SERVICE
+     *      Vulnerability: If the current president is a contract with a fallback function that reverts on receiving Ether,
+     *      the transfer call will fail, preventing the new president from being set and blocking the transition.
+     */
+    function becomePresident() public payable {
+        require(msg.value >= price, "Insufficient payment to become president"); // must pay the price to become president
+        president.transfer(price);   // Vulnerable line: If the president is a contract with a reverting fallback function, this transfer fails
+        president = msg.sender;      // Update the president to the new address
+        price = price * 2;           // Double the price for the next presidency
+    }
+}

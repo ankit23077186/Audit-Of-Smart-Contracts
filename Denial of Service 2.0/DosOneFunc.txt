@@ -1,0 +1,42 @@
+/*
+ * @source: https://github.com/SmartContractSecurity/SWC-registry/blob/master/test_cases/dos_gas_limit/dos_simple.sol
+ * @author: -
+ * @vulnerable_at_lines: 17,18
+ */
+
+pragma solidity ^0.4.25;
+
+/**
+ * @title DosOneFunc
+ * @dev This contract demonstrates a potential Denial of Service (DoS) vulnerability related to gas limits when manipulating a dynamic array.
+ *      The vulnerability arises from operations that can exceed the block gas limit, causing the transaction to fail.
+ */
+contract DosOneFunc {
+
+    /// @notice A dynamic array that stores addresses.
+    address[] public listAddresses;
+
+    /**
+     * @notice Fills the array with a specified number of addresses or clears the array if it exceeds a length threshold.
+     * @dev If the array has fewer than 1500 elements, this function will add 350 new addresses. If the array has 1500 or more elements,
+     *      it will be reset to an empty array. The operation to add addresses may consume significant gas and could lead to gas exhaustion.
+     * @dev Vulnerability: Adding 350 elements to the array can be gas-intensive and may lead to a Denial of Service (DoS) if the gas limit is exceeded.
+     * @dev Resetting the array to an empty state may also be costly in terms of gas if the array is large.
+     * @return A boolean indicating whether the array was successfully filled or cleared.
+     * @return true if the array was filled with 350 new addresses, false if it was reset.
+     */
+    function ifillArray() public returns (bool) {
+        if (listAddresses.length < 1500) {
+            // Vulnerable line: Adding 350 elements to the array may consume significant gas.
+            // <yes> <report> DENIAL_OF_SERVICE
+            for (uint i = 0; i < 350; i++) {
+                listAddresses.push(msg.sender); // Vulnerable line: Potential gas exhaustion if array grows too large
+            }
+            return true;
+        } else {
+            // Vulnerable line: Resetting the array to an empty state may be costly in gas.
+            listAddresses = new address ; // Vulnerable line: Resetting array may cause a DoS if it consumes excessive gas
+            return false;
+        }
+    }
+}

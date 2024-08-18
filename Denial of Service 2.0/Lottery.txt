@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title Lottery
+ * @dev This contract allows users to enter a lottery and draws a winner who receives the entire contract balance.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the drawWinner function.
+ */
+contract Lottery {
+    /**
+     * @dev Array of addresses of all players who entered the lottery.
+     */
+    address[] public players;
+    
+    /**
+     * @dev The address of the winner of the lottery.
+     */
+    address public winner;
+    
+    /**
+     * @dev Boolean flag indicating whether the winner has been drawn.
+     */
+    bool public drawn;
+
+    /**
+     * @notice Allows users to enter the lottery by sending a minimum amount of ether.
+     * @dev The entry amount must be greater than 0.1 ether. The sender's address is added to the players array.
+     */
+    function enter() public payable {
+        require(msg.value > 0.1 ether, "Minimum entry is 0.1 ether.");
+        players.push(msg.sender);
+    }
+
+    /**
+     * @notice Draws a random winner from the list of players and transfers the contract balance to the winner.
+     * @dev The function selects a winner based on a pseudo-random number. If the transfer to the winner fails (e.g., due to gas limitations or a revert),
+     * the prize distribution is blocked, and the lottery cannot proceed. This constitutes a Denial of Service (DoS) vulnerability.
+     */
+    function drawWinner() public {
+        require(!drawn, "Winner already drawn.");
+        require(players.length > 0, "No players in the lottery.");
+        winner = players[random() % players.length];
+        drawn = true;
+        payable(winner).transfer(address(this).balance); // DoS Vulnerability: Reverting transfer can block prize distribution.
+    }
+
+    /**
+     * @notice Generates a pseudo-random number based on current block difficulty, timestamp, and the list of players.
+     * @dev The randomness is not secure and can be influenced by miners.
+     * @return A pseudo-random uint used for selecting the winner.
+     */
+    function random() private view returns (uint) {
+        return uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp, players)));
+    }
+}

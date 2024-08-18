@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title RefundContract
+ * @dev This contract allows users to deposit funds and later refund them.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the refund function.
+ */
+contract RefundContract {
+    /**
+     * @dev Mapping from user addresses to their deposited balances.
+     */
+    mapping(address => uint) public balances; ///< Mapping of user addresses to their balances.
+
+    /**
+     * @notice Allows users to deposit funds into the contract.
+     * @dev The amount sent with the transaction is added to the sender's balance.
+     */
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    /**
+     * @notice Allows users to refund their deposited balance.
+     * @dev The function sets the user's balance to zero and attempts to transfer the full amount back to the user.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the transfer to the user fails (e.g., due to gas limitations or a revert),
+     * the refund process is blocked, and the user's balance cannot be refunded.
+     */
+    function refund() public {
+        uint amount = balances[msg.sender];
+        require(amount > 0, "No balance to refund.");
+        balances[msg.sender] = 0;
+        payable(msg.sender).transfer(amount); ///< DoS Vulnerability: Reverting transfer can block refunds.
+    }
+}

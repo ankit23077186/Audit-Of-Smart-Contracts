@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.4.24;
+
+/**
+ * @title Refunder
+ * @dev This contract allows refunds to a list of addresses.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the refundAll function.
+ * @source https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert
+ * @author ConsenSys Diligence
+ * @vulnerable_at_lines 24
+ * Modified by Bernhard Mueller
+ */
+contract Refunder {
+    /**
+     * @dev Array of addresses to which refunds are to be issued.
+     */
+    address[] private refundAddresses; ///< List of refund addresses.
+
+    /**
+     * @dev Mapping from addresses to their refund amounts.
+     */
+    mapping (address => uint) public refunds; ///< Mapping of refund amounts for each address.
+
+    /**
+     * @notice Constructor to initialize the contract with predefined refund addresses.
+     * @dev Adds specific addresses to the refundAddresses array.
+     */
+    constructor() public {
+        refundAddresses.push(0x79B483371E87d664cd39491b5F06250165e4b184);
+        refundAddresses.push(0x79B483371E87d664cd39491b5F06250165e4b185);
+    }
+
+    /**
+     * @notice Refunds all addresses listed in refundAddresses.
+     * @dev Iterates over all addresses and attempts to send the refund amount to each.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. 
+     * If the send operation fails for any address, the entire refund process is halted,
+     * and refunds for all subsequent addresses will not be processed.
+     * Additionally, if an attacker can cause send operations to fail repeatedly for their address,
+     * they can block refunds for all other participants, amplifying the impact of the DoS attack.
+     */
+    function refundAll() public {
+        for(uint x = 0; x < refundAddresses.length; x++) {
+            require(refundAddresses[x].send(refunds[refundAddresses[x]])); ///< DoS Vulnerability: Reverting send can block refunds for all addresses.
+        }
+    }
+}

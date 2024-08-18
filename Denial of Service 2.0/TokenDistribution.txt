@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title TokenDistribution
+ * @dev This contract manages the distribution of tokens and allows users to withdraw their tokens.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the withdraw function.
+ */
+contract TokenDistribution {
+    /**
+     * @dev Mapping from addresses to their token balances.
+     */
+    mapping(address => uint) public balances; ///< Mapping of addresses to their token balances.
+
+    /**
+     * @notice Distributes a specified amount of tokens to a list of recipients.
+     * @param recipients An array of addresses to receive tokens.
+     * @param amount The amount of tokens to distribute to each recipient.
+     * @dev Adds the specified amount of tokens to each recipient's balance.
+     */
+    function distribute(address[] memory recipients, uint amount) public {
+        for (uint i = 0; i < recipients.length; i++) {
+            balances[recipients[i]] += amount;
+        }
+    }
+
+    /**
+     * @notice Allows users to withdraw their token balance.
+     * @dev Transfers the entire token balance of the caller to their address. If the transfer fails (e.g., due to gas limitations or a revert),
+     * the withdrawal will be blocked, preventing the caller from accessing their funds.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the transfer operation fails for any reason,
+     * it can block the withdrawal process for the caller.
+     */
+    function withdraw() public {
+        uint amount = balances[msg.sender];
+        require(amount > 0, "No balance to withdraw.");
+        balances[msg.sender] = 0;
+        payable(msg.sender).transfer(amount); ///< DoS Vulnerability: Reverting transfer can block withdrawals.
+    }
+}

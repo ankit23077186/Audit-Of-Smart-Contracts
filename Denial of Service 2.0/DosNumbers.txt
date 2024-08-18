@@ -1,0 +1,76 @@
+/*
+ * @source: https://github.com/SmartContractSecurity/SWC-registry/blob/master/test_cases/dos_gas_limit/dos_number.sol
+ * @author: -
+ * @vulnerable_at_lines: 18,19,20,21,22
+ */
+
+pragma solidity ^0.4.25;
+
+/**
+ * @title DosNumber
+ * @dev This contract demonstrates potential Denial of Service (DoS) vulnerabilities due to gas limit constraints.
+ *      The vulnerabilities arise when inserting a large number of elements into an array or clearing a large array.
+ */
+contract DosNumber {
+
+    /// @notice The number of elements in the array.
+    uint numElements = 0;
+
+    /// @notice The dynamic array to store the elements.
+    uint[] array;
+
+    /**
+     * @notice Inserts a specified number of elements into the array.
+     * @dev Vulnerability: Inserting a large number of elements (greater than 382, depending on the actual gas limit) may cause the transaction to exceed the gas limit, resulting in a DoS.
+     * @param value The value to insert into the array.
+     * @param numbers The number of times the value should be inserted.
+     */
+    function insertNnumbers(uint value, uint numbers) public {
+        /// @dev Loops through the specified number of times and inserts the value into the array.
+        ///      If the array's length is exceeded, the array length is increased by one.
+        ///      This operation can be gas-intensive and may fail if `numbers` is too large.
+        for (uint i = 0; i < numbers; i++) {
+            if (numElements == array.length) {
+                array.length += 1; // Vulnerable line: Potential gas exhaustion
+            }
+            array[numElements++] = value; // Vulnerable line: Potential gas exhaustion
+        }
+    }
+
+    /**
+     * @notice Clears the array if it contains more than 1500 elements.
+     * @dev Resets the `numElements` counter to zero. 
+     *      However, this does not clear the actual array, leading to a potential issue with the array's length.
+     */
+    function clear() public {
+        require(numElements > 1500, "Array must have more than 1500 elements to clear.");
+        numElements = 0;
+    }
+
+    /**
+     * @notice Clears the entire array by resetting its length to zero.
+     * @dev Vulnerability: Clearing a large array may consume a significant amount of gas, potentially exceeding the block gas limit and causing a DoS.
+     *      This function should be used cautiously, especially when the array is large.
+     */
+    function clearDOS() public {
+        require(numElements > 1500, "Array must have more than 1500 elements to clear.");
+        array = new uint ; // Vulnerable line: Potential gas exhaustion
+        numElements = 0;
+    }
+
+    /**
+     * @notice Returns the number of elements in the array.
+     * @return The number of elements in the array.
+     */
+    function getLengthArray() public view returns(uint) {
+        return numElements;
+    }
+
+    /**
+     * @notice Returns the actual length of the array (including uninitialized elements).
+     * @return The actual length of the array.
+     */
+    function getRealLengthArray() public view returns(uint) {
+        return array.length;
+    }
+}

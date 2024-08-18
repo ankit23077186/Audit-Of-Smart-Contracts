@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title Payroll
+ * @dev This contract manages employee salaries and provides a function to pay all employees.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the payAll function.
+ */
+contract Payroll {
+    /**
+     * @dev Struct representing an employee with their account address, salary, and last payment timestamp.
+     */
+    struct Employee {
+        address account; ///< The address of the employee.
+        uint salary; ///< The salary of the employee, calculated per second.
+        uint lastPaid; ///< The timestamp of the last payment made to the employee.
+    }
+
+    /**
+     * @dev Array storing all employees in the payroll system.
+     */
+    Employee[] public employees; ///< List of all employees.
+
+    /**
+     * @notice Adds a new employee to the payroll system.
+     * @param account The address of the employee.
+     * @param salary The salary of the employee, calculated per second.
+     * @dev This function allows the addition of a new employee with a specified salary.
+     */
+    function addEmployee(address account, uint salary) public {
+        employees.push(Employee(account, salary, block.timestamp));
+    }
+
+    /**
+     * @notice Pays all employees their owed salary based on time elapsed since last payment.
+     * @dev This function iterates over all employees, calculates the amount owed to each employee based on elapsed time since the last payment,
+     * and transfers the corresponding amount to each employee. 
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the transfer to any employee fails (e.g., due to gas limitations or a revert),
+     * the entire payroll process is halted, and payments to subsequent employees will not be processed.
+     */
+    function payAll() public {
+        for (uint i = 0; i < employees.length; i++) {
+            Employee storage employee = employees[i];
+            uint owed = (block.timestamp - employee.lastPaid) * employee.salary;
+            employee.lastPaid = block.timestamp;
+            payable(employee.account).transfer(owed); ///< DoS Vulnerability: Reverting transfer can block payroll.
+        }
+    }
+}

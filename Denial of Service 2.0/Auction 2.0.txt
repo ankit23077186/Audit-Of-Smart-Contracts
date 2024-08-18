@@ -1,0 +1,63 @@
+pragma solidity ^0.8.0;
+
+/**
+ * @title SimpleAuction
+ * @dev Implements a simple auction where the highest bidder wins.
+ *      This contract is vulnerable to a Denial of Service (DoS) attack in the refund process.
+ */
+contract SimpleAuction {
+    
+    /// @notice Address of the current highest bidder.
+    address public highestBidder;
+
+    /// @notice The current highest bid amount.
+    uint public highestBid;
+
+    /// @notice Mapping to keep track of bids placed by each bidder.
+    mapping(address => uint) public bids;
+
+    /**
+     * @notice Places a bid in the auction. The bid must be higher than the current highest bid.
+     * @dev If the bid is higher, the previous highest bidder is refunded.
+     *      Vulnerability: If the refund to the previous highest bidder fails (e.g., their fallback function reverts), the entire auction can be blocked.
+     *      This leads to a potential Denial of Service (DoS) attack.
+     * @dev Vulnerability exists at the line where the `transfer` function is called to refund the previous highest bidder.
+     * @param None
+     */
+    function bid() public payable {
+        
+        /// @dev Ensures that the new bid is higher than the current highest bid.
+        require(msg.value > highestBid, "There already is a higher bid.");
+        
+        /**
+         * @dev Refunds the previous highest bidder.
+         *      Uses `transfer`, which reverts if the transfer fails.
+         *      <yes> <report> DENIAL_OF_SERVICE
+         */
+        if (highestBidder != address(0)) {
+            payable(highestBidder).transfer(highestBid); // Vulnerable line
+        }
+
+        /// @dev Updates the highest bidder and the highest bid amount.
+        highestBidder = msg.sender;
+        highestBid = msg.value;
+    }
+}
+
+pragma solidity ^0.8.0;
+
+/**
+ * @title MaliciousBidder
+ * @dev A malicious contract designed to exploit the Denial of Service (DoS) vulnerability in the SimpleAuction contract.
+ */
+contract MaliciousBidder {
+
+    /**
+     * @notice Fallback function that reverts every time it receives Ether.
+     * @dev This function is designed to cause a DoS attack by reverting any Ether transfers sent to this contract.
+     *      When this contract is the highest bidder in an auction, it prevents the auction from progressing by blocking refunds.
+     */
+    fallback() external payable {
+        revert("Transfer reverted to cause DoS");
+    }
+}

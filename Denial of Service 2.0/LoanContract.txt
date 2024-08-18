@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title SecureLoan
+ * @dev This contract allows users to lend and repay loans with interest.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the repay function.
+ */
+contract SecureLoan {
+    /**
+     * @dev Mapping from user addresses to their loan balances.
+     */
+    mapping(address => uint) public loans;
+    
+    /**
+     * @dev The interest rate applied to the loans, in percentage.
+     */
+    uint public interestRate;
+    
+    /**
+     * @dev The address of the contract owner.
+     */
+    address public owner;
+
+    /**
+     * @notice Constructor to initialize the contract with the given interest rate.
+     * @param _rate The interest rate to be set for the loans.
+     */
+    constructor(uint _rate) {
+        interestRate = _rate;
+        owner = msg.sender;
+    }
+
+    /**
+     * @notice Allows users to lend funds to the contract.
+     * @dev The amount sent with the transaction is added to the caller's loan balance.
+     */
+    function lend() public payable {
+        loans[msg.sender] += msg.value;
+    }
+
+    /**
+     * @notice Allows users to repay a portion of their loan.
+     * @param _amount The amount of the loan to repay.
+     * @dev The repayment amount includes the principal plus interest. 
+     * Note: This function contains a Denial of Service (DoS) vulnerability. 
+     * If the transfer to the owner fails (e.g., due to gas limitations or a revert), 
+     * the entire repayment process is blocked, preventing users from repaying their loans.
+     */
+    function repay(uint _amount) public {
+        require(loans[msg.sender] >= _amount, "Insufficient loan balance.");
+        uint repayment = _amount + (_amount * interestRate / 100);
+        loans[msg.sender] -= _amount;
+        payable(owner).transfer(repayment); // DoS Vulnerability: Reverting transfer can block repayment.
+    }
+}

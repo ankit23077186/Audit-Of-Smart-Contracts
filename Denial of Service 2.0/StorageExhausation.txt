@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title StorageExhaustionDoS
+ * @dev This contract demonstrates a potential storage exhaustion Denial of Service (DoS) vulnerability.
+ * Note: Contains a Storage Exhaustion DoS vulnerability in the clearStorage function.
+ */
+contract StorageExhaustionDoS {
+    /**
+     * @dev Mapping from unsigned integers to unsigned integers.
+     */
+    mapping(uint => uint) public data; ///< Mapping of keys to values.
+
+    /**
+     * @notice Fills the storage with given keys and values.
+     * @param keys An array of keys to be used in the mapping.
+     * @param values An array of values to be associated with the corresponding keys.
+     * @dev Requires that the lengths of keys and values arrays match. Stores each key-value pair in the mapping.
+     */
+    function fillStorage(uint[] memory keys, uint[] memory values) public {
+        require(keys.length == values.length, "Keys and values must match in length.");
+        
+        for (uint i = 0; i < keys.length; i++) {
+            data[keys[i]] = values[i];
+        }
+    }
+    
+    /**
+     * @notice Clears storage for the specified keys.
+     * @param keys An array of keys whose entries are to be deleted from the mapping.
+     * @dev Deletes entries for the specified keys. If too many keys are passed, this function may exceed the block gas limit,
+     * leading to a potential Denial of Service (DoS) vulnerability where the transaction cannot be completed.
+     */
+    function clearStorage(uint[] memory keys) public {
+        // If too many keys are passed, this may exceed the block gas limit.
+        for (uint i = 0; i < keys.length; i++) {
+            delete data[keys[i]]; ///< Storage Exhaustion DoS: Excessive keys may exhaust gas and prevent execution.
+        }
+    }
+}

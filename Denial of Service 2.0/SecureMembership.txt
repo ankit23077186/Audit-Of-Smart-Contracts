@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title SecureMembership
+ * @dev This contract manages membership with a fee and allows users to join and leave the membership.
+ * Note: Contains a Denial of Service (DoS) vulnerability in the leave function.
+ */
+contract SecureMembership {
+    /**
+     * @dev Mapping from user addresses to their membership status (true if a member).
+     */
+    mapping(address => bool) public members; ///< Mapping of user addresses to membership status.
+
+    /**
+     * @dev The fee required to join the membership.
+     */
+    uint public membershipFee; ///< The membership fee.
+
+    /**
+     * @dev The address of the contract owner.
+     */
+    address public owner; ///< The address of the contract owner.
+
+    /**
+     * @notice Constructor to initialize the contract with the given membership fee.
+     * @param _fee The membership fee to be set for joining the membership.
+     */
+    constructor(uint _fee) {
+        membershipFee = _fee;
+        owner = msg.sender;
+    }
+
+    /**
+     * @notice Allows users to join the membership by paying the required fee.
+     * @dev The function requires that the payment is at least equal to the membership fee.
+     */
+    function join() public payable {
+        require(msg.value >= membershipFee, "Insufficient payment.");
+        members[msg.sender] = true;
+    }
+
+    /**
+     * @notice Allows users to leave the membership and refunds the membership fee.
+     * @dev The function sets the user's membership status to false and attempts to transfer the membership fee back to the user.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the transfer to the user fails (e.g., due to gas limitations or a revert),
+     * the leave process is blocked, and the user's membership cannot be terminated.
+     */
+    function leave() public {
+        require(members[msg.sender], "Not a member.");
+        members[msg.sender] = false;
+        payable(msg.sender).transfer(membershipFee); ///< DoS Vulnerability: Reverting transfer can block leave process.
+    }
+}

@@ -1,0 +1,35 @@
+pragma solidity ^0.8.0;
+
+/**
+ * @title BlockGasLimitDoS
+ * @dev This contract demonstrates a potential Denial of Service (DoS) vulnerability due to exceeding the block gas limit.
+ *      The vulnerability arises when attempting to remove all users from a large array, which may cause the transaction to fail.
+ */
+contract BlockGasLimitDoS {
+    
+    /// @notice An array that stores the addresses of users.
+    address[] public users;
+
+    /**
+     * @notice Adds the sender's address to the users array.
+     * @dev Adds the `msg.sender` address to the end of the `users` array.
+     */
+    function addUser() public {
+        /// @dev Pushes the sender's address into the `users` array.
+        users.push(msg.sender);
+    }
+
+    /**
+     * @notice Removes all users from the array.
+     * @dev Vulnerability: If the array becomes too large, the loop may consume too much gas, 
+     *      causing the transaction to exceed the block gas limit and revert.
+     * @dev The vulnerability is associated with the loop that attempts to `pop` elements from the array.
+     */
+    function removeUsers() public {
+        /// @dev Continuously pops elements from the array until it is empty.
+        ///      This operation may fail if the array is too large and exceeds the block gas limit.
+        while(users.length > 0) {
+            users.pop(); // Vulnerable line
+        }
+    }
+}

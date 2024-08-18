@@ -1,0 +1,59 @@
+pragma solidity ^0.4.25;
+
+/**
+ * @title DosGas
+ * @dev This contract demonstrates a Denial of Service (DoS) vulnerability related to gas limits when manipulating a dynamic array of addresses.
+ *      The vulnerability arises from operations that can exceed the block gas limit, potentially causing transaction failures.
+ */
+contract DosGas {
+    /// @notice A dynamic array that stores creditor addresses.
+    address[] public creditorAddresses;
+    
+    /// @notice A boolean flag indicating whether the array has been reset.
+    bool public win = false;
+
+    /**
+     * @notice Resets the creditorAddresses array if its length exceeds 1500.
+     * @dev If the length of the creditorAddresses array is greater than 1500, this function will reset it to an empty array.
+     *      Resetting a large array may consume excessive gas and could exceed the block gas limit, leading to potential transaction failure.
+     * @dev Vulnerability: If the creditorAddresses array grows significantly large, resetting it can be very gas-intensive.
+     *      An attacker can exploit this by repeatedly calling the addCreditors function to fill the array, making it impossible
+     *      to execute this function due to gas limitations.
+     * @notice This function may be prone to a denial-of-service attack if the array is too large.
+     */
+    function emptyCreditors() public {
+        // <yes> <report> DENIAL_OF_SERVICE
+        if (creditorAddresses.length > 1500) {
+            creditorAddresses = new address ; // Vulnerable line: Resetting the array may exceed gas limits.
+            win = true;
+        }
+    }
+
+    /**
+     * @notice Adds 350 new creditor addresses to the array.
+     * @dev Adds 350 addresses (sender's address) to the creditorAddresses array.
+     * @return A boolean indicating that the addresses were successfully added.
+     */
+    function addCreditors() public returns (bool) {
+        for (uint i = 0; i < 350; i++) {
+            creditorAddresses.push(msg.sender); // Adds new address to the array.
+        }
+        return true;
+    }
+
+    /**
+     * @notice Returns the current value of the win flag.
+     * @return A boolean indicating whether the array has been reset.
+     */
+    function iWin() public view returns (bool) {
+        return win;
+    }
+
+    /**
+     * @notice Returns the length of the creditorAddresses array.
+     * @return The number of addresses currently stored in the creditorAddresses array.
+     */
+    function numberCreditors() public view returns (uint) {
+        return creditorAddresses.length;
+    }
+}

@@ -1,0 +1,42 @@
+pragma solidity ^0.8.0;
+
+/**
+ * @title ComplexLoopDoS
+ * @dev This contract demonstrates a potential Denial of Service (DoS) vulnerability due to exceeding the block gas limit.
+ *      The vulnerability arises when performing calculations over a large array, which may cause the transaction to fail.
+ */
+contract ComplexLoopDoS {
+    
+    /// @notice An array that stores a large number of integers.
+    uint[] public numbers;
+
+    /**
+     * @notice Adds a specified number of elements to the numbers array.
+     * @dev This function pushes integers from 0 to `numElements - 1` into the `numbers` array.
+     * @param numElements The number of elements to add to the array.
+     */
+    function addNumbers(uint numElements) public {
+        /// @dev Loops through the specified number of elements and adds them to the array.
+        for (uint i = 0; i < numElements; i++) {
+            numbers.push(i);
+        }
+    }
+
+    /**
+     * @notice Calculates the sum of all elements in the numbers array.
+     * @dev Vulnerability: If the array becomes too large, the loop may consume too much gas,
+     *      causing the transaction to exceed the block gas limit and revert.
+     * @dev The vulnerability is associated with the loop that attempts to iterate over the entire array.
+     * @return sum The sum of all elements in the numbers array.
+     */
+    function calculateSum() public view returns (uint sum) {
+        /// @dev Initialize the sum to 0.
+        sum = 0;
+
+        /// @dev Loops through all elements in the `numbers` array to calculate the sum.
+        ///      This operation may fail if the array is too large and exceeds the block gas limit.
+        for (uint i = 0; i < numbers.length; i++) {
+            sum += numbers[i]; // Vulnerable line
+        }
+    }
+}

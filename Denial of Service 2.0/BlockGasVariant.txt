@@ -1,0 +1,40 @@
+pragma solidity ^0.8.0;
+
+/**
+ * @title BlockGasVariant
+ * @dev This contract demonstrates a potential Denial of Service (DoS) vulnerability related to block gas limits.
+ *      The vulnerability occurs when attempting to clear a large array, which may exceed the block gas limit and cause the transaction to fail.
+ */
+contract LargeArrayDoS {
+    
+    /// @notice Public array that stores a large number of elements.
+    uint[] public largeArray;
+
+    /**
+     * @notice Fills the array with a specified number of elements.
+     * @dev Adds elements to the `largeArray` by pushing values from 0 to `numElements - 1`.
+     *      This function can be used to simulate the creation of a large array.
+     * @param numElements The number of elements to add to the array.
+     */
+    function fillArray(uint numElements) public {
+        /// @dev Loops through the specified number of elements and adds them to the array.
+        for (uint i = 0; i < numElements; i++) {
+            largeArray.push(i);
+        }
+    }
+
+    /**
+     * @notice Clears all elements from the array.
+     * @dev Vulnerability: If the array is too large, the operation may exceed the block gas limit,
+     *      causing the transaction to fail. This can lead to a Denial of Service (DoS) attack if the contract
+     *      relies on successfully clearing the array.
+     * @dev Vulnerability exists in the loop that attempts to `pop` elements from the array.
+     */
+    function clearArray() public {
+        /// @dev Continuously pops elements from the array until it is empty.
+        ///      This operation may fail if the array is too large and exceeds the block gas limit.
+        while(largeArray.length > 0) {
+            largeArray.pop(); // Vulnerable line
+        }
+    }
+}

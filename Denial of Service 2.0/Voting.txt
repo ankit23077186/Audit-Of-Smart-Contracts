@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title Voting
+ * @dev This contract allows voting for candidates and includes a function to withdraw funds. Contains a potential Denial of Service (DoS) vulnerability in the withdraw function.
+ */
+contract Voting {
+    /**
+     * @dev Struct representing a voter with their voting status and the index of their chosen candidate.
+     */
+    struct Voter {
+        bool voted; ///< Indicates if the voter has already voted.
+        uint voteIndex; ///< The index of the candidate the voter has chosen.
+    }
+
+    /**
+     * @dev Mapping from addresses to their voter information.
+     */
+    mapping(address => Voter) public voters; ///< Mapping of voter addresses to their voting details.
+
+    /**
+     * @dev Array of candidate addresses.
+     */
+    address[] public candidates; ///< List of candidate addresses.
+
+    /**
+     * @notice Allows a user to vote for a candidate.
+     * @param candidateIndex The index of the candidate in the candidates array.
+     * @dev Requires that the caller has not already voted and that the candidate index is valid.
+     */
+    function vote(uint candidateIndex) public {
+        require(!voters[msg.sender].voted, "Already voted.");
+        require(candidateIndex < candidates.length, "Invalid candidate index.");
+        voters[msg.sender] = Voter(true, candidateIndex);
+    }
+
+    /**
+     * @notice Withdraws 1 ether from the contract to each candidate's address.
+     * @dev Iterates over all candidate addresses and attempts to transfer 1 ether to each. 
+     * If the transfer to any candidate fails (e.g., due to a revert or insufficient gas),
+     * the entire withdrawal process is halted, blocking all subsequent withdrawals.
+     * Note: This function contains a Denial of Service (DoS) vulnerability. If the transfer operation fails for any candidate,
+     * it will revert the transaction, preventing any withdrawals from being completed.
+     */
+    function withdraw() public {
+        require(candidates.length > 0, "No candidates.");
+        for (uint i = 0; i < candidates.length; i++) {
+            payable(candidates[i]).transfer(1 ether); ///< DoS Vulnerability: Reverting transfer can block withdrawals for all candidates.
+        }
+    }
+}

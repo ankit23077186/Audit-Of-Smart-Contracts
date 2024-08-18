@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title ComplexExecutionDoS
+ * @dev This contract demonstrates a Denial of Service (DoS) vulnerability related to failed external function calls.
+ *      The vulnerability arises when a call to a target contract's function fails, which blocks the execution of the function
+ *      in this contract.
+ */
+contract ComplexExecutionDoS {
+    /// @notice Address of the target contract.
+    address public target;
+
+    /**
+     * @notice Sets the target contract address.
+     * @param _target The address of the target contract to be set.
+     */
+    function setTarget(address _target) public {
+        target = _target;
+    }
+
+    /**
+     * @notice Executes a complex function on the target contract.
+     * @dev This function attempts to call the `complexFunction()` of the target contract. If the call fails,
+     *      the `require` statement will cause the transaction to revert, which creates a Denial of Service (DoS) vulnerability.
+     * @dev Vulnerability: If the `complexFunction()` in the target contract fails or the target contract's fallback function
+     *      is designed to revert, the call will fail, and the entire transaction will revert, blocking further execution.
+     */
+    function executeComplex() public {
+        // Vulnerable line: Calling the target contract's `complexFunction`. If the call fails, the transaction reverts.
+        (bool success, ) = target.call(abi.encodeWithSignature("complexFunction()"));
+        require(success, "Complex function failed"); // Vulnerable line: Reverting on failure blocks execution.
+    }
+}

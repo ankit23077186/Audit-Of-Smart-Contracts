@@ -1,0 +1,46 @@
+pragma solidity ^0.4.15;
+
+/**
+ * @title DosAuction
+ * @dev Implements an auction where the highest bidder wins. 
+ *      Vulnerable to a Denial of Service (DoS) attack, specifically during the refund process.
+ * @source https://github.com/trailofbits/not-so-smart-contracts/blob/master/denial_of_service/auction.sol
+ * @author -
+ * @vulnerable_at_lines 23
+ */
+contract DosAuction {
+    
+    /// @notice Address of the current highest bidder.
+    address public currentFrontrunner;
+
+    /// @notice The current highest bid amount.
+    uint public currentBid;
+
+    /**
+     * @notice Places a bid in the auction. The bid must be higher than the current highest bid.
+     * @dev If the new bid is higher, the previous highest bidder is refunded.
+     *      If the refund fails, the entire transaction reverts.
+     *      Vulnerability: If the current frontrunner's fallback function always reverts, they cannot be outbid.
+     *      This leads to a Denial of Service (DoS) attack where the auction is blocked.
+     * @vulnerable_at_lines 23
+     */
+    function bid() public payable {
+        
+        /// @dev Ensures that the new bid is higher than the current highest bid.
+        require(msg.value > currentBid);
+
+        /**
+         * @dev Refunds the previous highest bidder.
+         *      Uses `send`, which returns false if the transaction fails.
+         *      If the refund fails, the transaction reverts.
+         *      <yes> <report> DENIAL_OF_SERVICE
+         */
+        if (currentFrontrunner != 0) {
+            require(currentFrontrunner.send(currentBid));
+        }
+
+        /// @dev Updates the frontrunner to the new highest bidder and the current bid to the new bid amount.
+        currentFrontrunner = msg.sender;
+        currentBid = msg.value;
+    }
+}

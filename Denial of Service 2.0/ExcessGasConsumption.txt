@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title ExcessiveGasConsumption
+ * @dev This contract demonstrates a function that consumes excessive gas due to an infinite loop.
+ *      The `consumeGas` function will continuously increment a counter without terminating, leading to gas exhaustion.
+ *      This can be exploited to cause a Denial of Service (DoS) by consuming all available gas.
+ */
+contract ExcessiveGasConsumption {
+
+    /**
+     * @notice A function that consumes excessive gas by executing an infinite loop.
+     * @dev This function will keep incrementing a counter indefinitely, consuming all available gas in the transaction.
+     *      This creates a vulnerability where the contract can cause a Denial of Service (DoS) by preventing other functions from executing.
+     * @dev Vulnerability: The infinite loop will prevent the function from terminating and consume all gas available in the transaction.
+     *      This can lead to failed transactions and blocked operations, making the contract prone to DoS attacks.
+     */
+    function consumeGas() public {
+        uint n = 0; // Initialize counter variable.
+        while(true) { // Infinite loop.
+            n++; // Increment counter variable.
+        }
+    }
+}

@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title SecureEscrow
+ * @dev This contract implements an escrow mechanism to hold and release funds between a buyer and a seller.
+ *      The funds are released to the seller only when the buyer approves the transaction.
+ *      The contract is vulnerable to a Denial of Service (DoS) attack in the release function.
+ */
+contract SecureEscrow {
+    /// @notice The address of the buyer who initiates the escrow.
+    address public buyer;
+
+    /// @notice The address of the seller who receives the funds.
+    address public seller;
+
+    /// @notice The total amount of funds held in escrow.
+    uint public amount;
+
+    /// @notice A boolean flag indicating whether the transaction has been approved by the buyer.
+    bool public approved;
+
+    /**
+     * @notice Initializes the escrow contract with the seller's address.
+     * @param _seller The address of the seller who will receive the funds.
+     */
+    constructor(address _seller) {
+        buyer = msg.sender; // The address deploying the contract is the buyer.
+        seller = _seller;   // The provided address is the seller.
+    }
+
+    /**
+     * @notice Deposits funds into the escrow contract.
+     * @dev Only the buyer can deposit funds into the escrow. The deposited amount is added to the total escrow amount.
+     */
+    function deposit() public payable {
+        require(msg.sender == buyer, "Only buyer can deposit."); // Only the buyer can deposit funds.
+        amount += msg.value; // Add the deposited amount to the total escrow amount.
+    }
+
+    /**
+     * @notice Approves the transaction, allowing the funds to be released.
+     * @dev Only the buyer can approve the transaction. Once approved, the `approved` flag is set to true.
+     */
+    function approve() public {
+        require(msg.sender == buyer, "Only buyer can approve."); // Only the buyer can approve the transaction.
+        approved = true; // Set the approval flag to true.
+    }
+
+    /**
+     * @notice Releases the funds to the seller if the transaction is approved.
+     * @dev Only the seller can call this function. The funds are transferred to the seller if the transaction is approved.
+     * @dev Vulnerability: The transfer call can fail if the seller's fallback function reverts, potentially blocking the release of funds.
+     */
+    function release() public {
+        require(msg.sender == seller, "Only seller can release."); // Only the seller can release the funds.
+        require(approved, "Approval required."); // Ensure the transaction has been approved by the buyer.
+        uint toTransfer = amount; // Store the amount to transfer.
+        amount = 0; // Reset the amount to zero.
+        payable(seller).transfer(toTransfer); // Vulnerable line: Transferring funds to the seller may fail if the seller's fallback function reverts.
+        // <yes> <report> DENIAL_OF_SERVICE
+    }
+}

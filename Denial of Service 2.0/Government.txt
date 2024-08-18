@@ -1,0 +1,163 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.4.0;
+
+/**
+ * @title Government
+ * @dev This contract simulates a government lending system with a mechanism to handle crashes and pay out creditors.
+ *      The contract includes logic for lending money, handling system crashes, and distributing payments.
+ * @notice Contains Denial of Service (DoS) vulnerabilities related to array manipulation and external calls.
+ */
+contract Government {
+
+    /// @notice The index of the last creditor who was paid out.
+    uint32 public lastCreditorPayedOut;
+
+    /// @notice The timestamp of the last new credit deposit.
+    uint public lastTimeOfNewCredit;
+
+    /// @notice The amount of profit to be used in case of a system crash.
+    uint public profitFromCrash;
+
+    /// @notice List of creditor addresses.
+    address[] public creditorAddresses;
+
+    /// @notice List of amounts owed to each creditor.
+    uint[] public creditorAmounts;
+
+    /// @notice Address of the corrupt elite who manages the system.
+    address public corruptElite;
+
+    /// @notice Mapping of addresses to their associated buddy credits.
+    mapping (address => uint) buddies;
+
+    /// @notice Constant representing 12 hours in seconds.
+    uint constant TWELVE_HOURS = 43200;
+
+    /// @notice Current round of the system.
+    uint8 public round;
+
+    /**
+     * @notice Constructor to initialize the government contract.
+     * @dev Sets the initial values for the corrupt elite, profit from crash, and the timestamp of the last credit.
+     */
+    function Government() {
+        profitFromCrash = msg.value;
+        corruptElite = msg.sender;
+        lastTimeOfNewCredit = block.timestamp;
+    }
+
+    /**
+     * @notice Lends money to the government and manages the system based on the amount and time.
+     * @param buddy The address of the buddy who may receive a portion of the credit.
+     * @return A boolean indicating whether the lending was successful.
+     * @dev If the system hasn't received new credit for 12 hours, it will crash:
+     *      - Refund the sender
+     *      - Pay out all funds to the last creditor
+     *      - Transfer remaining balance to the corrupt elite
+     *      - Reset contract state
+     * @dev <yes> <report> DENIAL_OF_SERVICE
+     *      Vulnerability: Resetting arrays can be expensive in gas and block execution if the arrays are large.
+     */
+    function lendGovernmentMoney(address buddy) returns (bool) {
+        uint amount = msg.value;
+        if (lastTimeOfNewCredit + TWELVE_HOURS < block.timestamp) {
+            // The system has crashed, handle payouts and reset state
+            msg.sender.send(amount); // Vulnerable line: External call can fail and revert
+            creditorAddresses[creditorAddresses.length - 1].send(profitFromCrash); // Vulnerable line: External call can fail and revert
+            corruptElite.send(this.balance); // Vulnerable line: External call can fail and revert
+            lastCreditorPayedOut = 0;
+            lastTimeOfNewCredit = block.timestamp;
+            profitFromCrash = 0;
+            creditorAddresses = new address ; // Vulnerable line: Expensive operation when the array is large
+            creditorAmounts = new uint ; // Vulnerable line: Expensive operation when the array is large
+            round += 1;
+            return false;
+        } else {
+            if (amount >= 10 ** 18) {
+                lastTimeOfNewCredit = block.timestamp;
+                creditorAddresses.push(msg.sender);
+                creditorAmounts.push(amount * 110 / 100);
+                corruptElite.send(amount * 5/100); // Vulnerable line: External call can fail and revert
+                if (profitFromCrash < 10000 * 10**18) {
+                    profitFromCrash += amount * 5/100;
+                }
+                if(buddies[buddy] >= amount) {
+                    buddy.send(amount * 5/100); // Vulnerable line: External call can fail and revert
+                }
+                buddies[msg.sender] += amount * 110 / 100;
+                if (creditorAmounts[lastCreditorPayedOut] <= address(this).balance - profitFromCrash) {
+                    creditorAddresses[lastCreditorPayedOut].send(creditorAmounts[lastCreditorPayedOut]); // Vulnerable line: External call can fail and revert
+                    buddies[creditorAddresses[lastCreditorPayedOut]] -= creditorAmounts[lastCreditorPayedOut];
+                    lastCreditorPayedOut += 1;
+                }
+                return true;
+            } else {
+                msg.sender.send(amount); // Vulnerable line: External call can fail and revert
+                return false;
+            }
+        }
+    }
+
+    /**
+     * @notice Fallback function to handle incoming Ether.
+     * @dev Calls the lendGovernmentMoney function with a default buddy address.
+     */
+    function() {
+        lendGovernmentMoney(0);
+    }
+
+    /**
+     * @notice Calculates the total debt owed to creditors.
+     * @return The total debt amount.
+     */
+    function totalDebt() returns (uint debt) {
+        for(uint i = lastCreditorPayedOut; i < creditorAmounts.length; i++) {
+            debt += creditorAmounts[i];
+        }
+    }
+
+    /**
+     * @notice Calculates the total amount paid out to creditors.
+     * @return The total amount paid out.
+     */
+    function totalPayedOut() returns (uint payout) {
+        for(uint i = 0; i < lastCreditorPayedOut; i++) {
+            payout += creditorAmounts[i];
+        }
+    }
+
+    /**
+     * @notice Invests additional funds into the system.
+     * @dev Adds the sent Ether to the profitFromCrash variable.
+     */
+    function investInTheSystem() {
+        profitFromCrash += msg.value;
+    }
+
+    /**
+     * @notice Transfers control to the next generation of corrupt elites.
+     * @param nextGeneration The address of the new corrupt elite.
+     * @dev Only the current corrupt elite can transfer control.
+     */
+    function inheritToNextGeneration(address nextGeneration) {
+        if (msg.sender == corruptElite) {
+            corruptElite = nextGeneration;
+        }
+    }
+
+    /**
+     * @notice Retrieves the list of creditor addresses.
+     * @return The array of creditor addresses.
+     */
+    function getCreditorAddresses() returns (address[]) {
+        return creditorAddresses;
+    }
+
+    /**
+     * @notice Retrieves the list of creditor amounts.
+     * @return The array of creditor amounts.
+     */
+    function getCreditorAmounts() returns (uint[]) {
+        return creditorAmounts;
+    }
+}

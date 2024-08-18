@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title FailedContractExecutionDoS
+ * @dev This contract demonstrates a Denial of Service (DoS) vulnerability that arises from external calls to a target contract.
+ *      If the target contract's fallback function fails, it will block the execution of the `execute` function in this contract.
+ */
+contract FailedContractExecutionDoS {
+    /// @notice Address of the target contract.
+    address public target;
+
+    /**
+     * @notice Sets the target contract address.
+     * @param _target The address of the target contract to be set.
+     */
+    function setTarget(address _target) public {
+        target = _target;
+    }
+
+    /**
+     * @notice Executes a call to the target contract.
+     * @dev This function tries to call the target contract. If the target contract's fallback function reverts,
+     *      the call will fail, and the entire transaction will revert. This creates a Denial of Service (DoS) vulnerability,
+     *      as the execution of this function will fail whenever the target contract's fallback function fails.
+     * @dev Vulnerability: If the target contract's fallback function is designed to revert or fails for any reason,
+     *      the `require` statement will cause the transaction to revert, preventing successful execution.
+     */
+    function execute() public {
+        // Vulnerable line: Calling the target contract's fallback function. If the call fails, the transaction reverts.
+        (bool success, ) = target.call("");
+        require(success, "External call failed"); // Vulnerable line: Reverting on failure blocks execution.
+    }
+}
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+/**
+ * @title RevertingFallback
+ * @dev This contract is designed to always revert on external calls to demonstrate the DoS vulnerability.
+ */
+contract RevertingFallback {
+    /**
+     * @notice Fallback function that always reverts.
+    
