@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleExchange {
+    /// @notice The exchange rate in wei per token
+    uint public exchangeRate;
+
+    /**
+     * @notice Set the exchange rate for buying tokens
+     * @param _rate The new exchange rate in wei per token
+     * @return None
+     */
+    function setExchangeRate(uint _rate) public {
+        exchangeRate = _rate;
+    }
+
+    /**
+     * @notice Buy tokens with ether
+     * @dev Vulnerable to front-running attacks where an attacker could change 
+     * the exchange rate before this transaction is mined, affecting the number 
+     * of tokens received.
+     * @return None
+     */
+    function buyTokens() public payable {
+        uint tokens = msg.value / exchangeRate;
+        require(tokens > 0, "Insufficient ether sent.");
+        // Transfer tokens to the buyer...
+    }
+}

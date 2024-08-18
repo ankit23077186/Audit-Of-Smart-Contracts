@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Crowdfunding {
+    /// @notice The funding goal for the campaign
+    uint public goal;
+
+    /// @notice The total amount of funds raised so far
+    uint public raisedAmount;
+
+    /**
+     * @notice Set the funding goal for the crowdfunding campaign
+     * @dev This function allows the campaign creator to set a target amount to be raised.
+     * @param _goal The funding goal to be set
+     * @return None
+     */
+    function setGoal(uint _goal) public {
+        goal = _goal;
+    }
+
+    /**
+     * @notice Contribute funds to the crowdfunding campaign
+     * @dev Requires a non-zero contribution. The contribution is added to the 
+     * total funds raised. However, there is a vulnerability where the `raisedAmount` 
+     * can be front-run by another transaction, allowing a contributor to manipulate 
+     * the campaign status or other logic dependent on `raisedAmount`.
+     * @param msg.value The amount of ether being contributed
+     * @return None
+     */
+    function contribute() public payable {
+        require(msg.value > 0, "Contribution must be greater than 0.");
+        raisedAmount += msg.value;
+    }
+}

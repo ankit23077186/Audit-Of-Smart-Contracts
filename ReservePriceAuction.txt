@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract ReservePriceAuction {
+    /// @notice Address of the current highest bidder
+    address public highestBidder;
+
+    /// @notice Current highest bid amount
+    uint public highestBid;
+
+    /// @notice The minimum acceptable bid amount
+    uint public reservePrice;
+
+    /**
+     * @notice Set the reserve price for the auction
+     * @dev This function allows the auctioneer to set a minimum acceptable bid.
+     * @param _price The reserve price to be set
+     * @return None
+     */
+    function setReservePrice(uint _price) public {
+        reservePrice = _price;
+    }
+
+    /**
+     * @notice Place a bid in the auction
+     * @dev The bid must be higher than the current highest bid and meet or exceed 
+     * the reserve price. However, there is a vulnerability where the reserve price 
+     * can be front-run by another transaction, allowing a bidder to anticipate and 
+     * outbid the current highest bid before it is processed.
+     * @param msg.value The amount of the bid submitted by the bidder
+     * @return None
+     */
+    function bid() public payable {
+        require(msg.value > highestBid && msg.value >= reservePrice, "Bid not high enough.");
+        highestBidder = msg.sender;
+        highestBid = msg.value;
+    }
+}

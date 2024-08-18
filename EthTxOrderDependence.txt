@@ -1,0 +1,50 @@
+/*
+ * @source: https://github.com/ConsenSys/evm-analyzer-benchmark-suite
+ * @author: Suhabe Bugrara
+ * @vulnerable_at_lines: 23,31
+ */
+
+pragma solidity ^0.4.16;
+
+contract EthTxOrderDependenceMinimal {
+    /// @notice Address of the contract owner
+    address public owner;
+
+    /// @notice Boolean indicating whether the reward has been claimed
+    bool public claimed;
+
+    /// @notice The reward amount in ether
+    uint public reward;
+
+    /// @notice Constructor to set the owner of the contract
+    function EthTxOrderDependenceMinimal() public {
+        owner = msg.sender;
+    }
+
+    /**
+     * @notice Set the reward amount, can only be called by the owner
+     * @dev Vulnerable to front-running attacks where another transaction can 
+     * manipulate the reward before this one is mined.
+     * @return None
+     */
+    function setReward() public payable {
+        require(!claimed);
+        require(msg.sender == owner);
+        owner.transfer(reward);
+        reward = msg.value;
+    }
+
+    /**
+     * @notice Claim the reward by providing a valid submission
+     * @dev Vulnerable to front-running attacks where another transaction can 
+     * claim the reward before this one is mined.
+     * @param submission The submission value provided by the caller
+     * @return None
+     */
+    function claimReward(uint256 submission) public {
+        require(!claimed);
+        require(submission < 10);
+        msg.sender.transfer(reward);
+        claimed = true;
+    }
+}
