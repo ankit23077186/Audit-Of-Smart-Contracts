@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Auction {
+    /// @notice Address of the current highest bidder
+    address public highestBidder;
+    
+    /// @notice Current highest bid amount
+    uint public highestBid;
+
+    /**
+     * @notice Place a bid in the auction
+     * @dev Ensures that the bid is higher than the current highest bid, 
+     * but is vulnerable to front-running attacks where a higher bid can be 
+     * submitted before the current bid is mined.
+     * @dev The vulnerability occurs because the assignment of `highestBidder` 
+     * and `highestBid` happens after the condition is checked, allowing another 
+     * transaction to be processed in between.
+     * @param msg.value The amount of the bid submitted by the bidder
+     * @return None
+     */
+    function bid() public payable {
+        require(msg.value > highestBid, "Bid not high enough.");
+        highestBidder = msg.sender;
+        highestBid = msg.value;
+    }
+}
